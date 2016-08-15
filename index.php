@@ -5,8 +5,8 @@
  * ID: @FreezeMan
  * Date: 7/29/16
  * Time: 5:05 PM
- * Website:
- * Email:
+ * Website: NextPay.ir
+ * Email: freezeman.0098@gmail.com
  * @copyright 2016
  */
 
@@ -181,6 +181,8 @@ function load_nextpay_pmpro_class()
 
                 $gtw_env = pmpro_getOption('gateway_environment');
 
+                include_once "nextpay_payment.php";
+
                 $nextpay = new Nextpay_Payment();
 
                 if ($gtw_env == '' || $gtw_env == 'sandbox') {
@@ -205,10 +207,10 @@ function load_nextpay_pmpro_class()
 
                 $nextpay->setAmount($amount);
 
-                $trans_id = $nextpay->verify();
+                $result = $nextpay->token();
 
-                if ($trans_id) {
-                    $nextpay->send($trans_id);
+                if(intval($result->code) == -1) {
+                    $nextpay->send($result->trans_id);
                     die();
                 } else {
                     $Err = 'خطا در ارسال اطلاعات به نکست پی کد خطا :  '.$result->Status;
@@ -246,6 +248,8 @@ function load_nextpay_pmpro_class()
                 }
 
                 $gtw_env = pmpro_getOption('gateway_environment');
+
+                include_once "nextpay_payment.php";
 
                 $nextpay = new Nextpay_Payment();
 
