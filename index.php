@@ -1,12 +1,12 @@
 <?php
 /**
  * Created by NextPay.ir
- * author: FreezeMan
- * ID: @FreezeMan
- * Date: 7/29/16
+ * author: Nextpay Company
+ * ID: @nextpay
+ * Date: 09/22/2016
  * Time: 5:05 PM
  * Website: NextPay.ir
- * Email: freezeman.0098@gmail.com
+ * Email: info@nextpay.ir
  * @copyright 2016
  */
 
@@ -194,6 +194,7 @@ function load_nextpay_pmpro_class()
                 }
 
                 $order_id = $morder->code;
+                $nextpay->setOrderId($order_id);
                 $redirect = admin_url('admin-ajax.php')."?action=nextpay-ins&oid=$order_id";
 
                 $nextpay->setCallbackUri($redirect);
@@ -231,6 +232,7 @@ function load_nextpay_pmpro_class()
                 $oid = $_GET['oid'];
                 global $pmpro_currency;
                 $trans_id	= (isset($_POST['trans_id'])) ? $_POST['trans_id'] : $_GET['trans_id'];
+                $order_id	= (isset($_POST['order_id'])) ? $_POST['order_id'] : $_GET['order_id'];
 
                 $morder = null;
                 try {
@@ -268,6 +270,8 @@ function load_nextpay_pmpro_class()
                 }
 
                 $nextpay->setAmount($Amount);
+                $nextpay->setTransId($trans_id);
+                $nextpay->setOrderId($order_id);
 
                 $result = intval($nextpay->verify_request());
 
