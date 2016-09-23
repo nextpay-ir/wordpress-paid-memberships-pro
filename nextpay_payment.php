@@ -8,6 +8,8 @@
  * Website: NextPay.ir
  * Email: info@nextpay.ir
  * @copyright 2016
+ * @package NextPay_Gateway
+ * @version 1.0
  */
 class Nextpay_Payment
 {
