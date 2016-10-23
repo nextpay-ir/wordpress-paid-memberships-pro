@@ -1,24 +1,12 @@
 <?php
 /**
- * Plugin Name: NextPay Gateway For Memberships Pro
- * Created by NextPay.ir
- * author: Nextpay Company
- * ID: @nextpay
- * Date: 09/22/2016
- * Time: 5:05 PM
- * Website: NextPay.ir
- * Email: info@nextpay.ir
- * @copyright 2016
- * @package NextPay_Gateway
- * @version 1.0
+ * Plugin Name: Nextpay Paid Memberships Pro
  * Description: This plugin lets you use NextPay gateway in Memberships Pro wp plugin.
- * Plugin URI: http://www.nextpay.ir
- * Author URI: http://www.nextpay.ir
- * License: GPL2
- * License URI: http://www.gnu.org/licenses/gpl-2.0.html.
+ * author: Nextpay Company
+ * Version: 1.1
+ * License: GPL v2.0.
+ * Website: NextPay.ir
  */
-
-require_once("nextpay_payment.php");
 //load classes init method
 add_action('plugins_loaded', 'load_nextpay_pmpro_class', 11);
 add_action('plugins_loaded', ['PMProGateway_Nextpay', 'init'], 12);
@@ -38,7 +26,7 @@ function load_nextpay_pmpro_class()
 
             public static function init()
             {
-                //make sure Stripe is a gateway option
+                //make sure Nextpay is a gateway option
                 add_filter('pmpro_gateways', ['PMProGateway_Nextpay', 'pmpro_gateways']);
 
                 //add fields to payment settings
@@ -80,8 +68,8 @@ function load_nextpay_pmpro_class()
             {
                 $options = [
                     'nextpay_api_key',
-					'currency',
-					'tax_rate',
+                    'currency',
+                    'tax_rate',
                 ];
 
                 return $options;
@@ -95,7 +83,7 @@ function load_nextpay_pmpro_class()
             public static function pmpro_payment_options($options)
             {
                 //get nextpay options
-                $nextpay_options = self::getGatewayOptions();
+                $nextpay_options = PMProGateway_Nextpay::getGatewayOptions();
 
                 //merge with others.
                 $options = array_merge($nextpay_options, $options);
@@ -135,27 +123,28 @@ function load_nextpay_pmpro_class()
              */
             public static function pmpro_payment_option_fields($values, $gateway)
             {
+
                 ?>
                 <tr class="pmpro_settings_divider gateway gateway_nextpay" <?php if ($gateway != 'nextpay') {
-                    ?>style="display: none;"<?php 
+                ?>style="display: none;"<?php
                 }
                 ?>>
-                <td colspan="2">
-                    <?php echo 'تنظیمات نکست پی';
-                ?>
-                </td>
+                    <td colspan="2">
+                        <?php echo 'تنظیمات نکست پی';
+                        ?>
+                    </td>
                 </tr>
                 <tr class="gateway gateway_nextpay" <?php if ($gateway != 'nextpay') {
-                    ?>style="display: none;"<?php 
+                ?>style="display: none;"<?php
                 }
                 ?>>
-                <th scope="row" valign="top">
-                <label for="nextpay_api_key">کلید api برای اتصال به نکست پی:</label>
-                </th>
-                <td>
-                    <input type="text" id="nextpay_api_key" name="nextpay_api_key" size="60" value="<?php echo esc_attr($values['nextpay_api_key']);
-                ?>" />
-                </td>
+                    <th scope="row" valign="top">
+                        <label for="nextpay_api_key">کلید مجوزدهی درگاه نکست پی:</label>
+                    </th>
+                    <td>
+                        <input type="text" id="nextpay_api_key" name="nextpay_api_key" size="60" value="<?php echo esc_attr($values['nextpay_api_key']);
+                        ?>" />
+                    </td>
                 </tr>
 
                 <?php
@@ -169,6 +158,7 @@ function load_nextpay_pmpro_class()
              */
             public static function pmpro_checkout_before_change_membership_level($user_id, $morder)
             {
+                include_once dirname(__FILE__).'/nextpay_payment.php';
                 global $wpdb, $discount_code_id;
 
                 //if no order, no need to pay
@@ -184,28 +174,11 @@ function load_nextpay_pmpro_class()
                     $wpdb->query("INSERT INTO $wpdb->pmpro_discount_codes_uses (code_id, user_id, order_id, timestamp) VALUES('".$discount_code_id."', '".$user_id."', '".$morder->id."', now())");
                 }
 
-                //$morder->Gateway->sendToTwocheckout($morder);
-                global $pmpro_currency;
 
-                $gtw_env = pmpro_getOption('gateway_environment');
-
-                include_once "nextpay_payment.php";
-
-                $nextpay = new Nextpay_Payment();
-
-                if ($gtw_env == '' || $gtw_env == 'sandbox') {
-                    $nextpay->setApiKey("1cf9d861-c817-468b-809b-2595625902ac");
-
-                } else {
-                    $api = pmpro_getOption('nextpay_api_key');
-                    $nextpay->setApiKey($api);
-                }
 
                 $order_id = $morder->code;
-                $nextpay->setOrderId($order_id);
                 $redirect = admin_url('admin-ajax.php')."?action=nextpay-ins&oid=$order_id";
 
-                $nextpay->setCallbackUri($redirect);
 
                 global $pmpro_currency;
 
@@ -214,15 +187,25 @@ function load_nextpay_pmpro_class()
                     $amount /= 10;
                 }
 
-                $nextpay->setAmount($amount);
+                $api_key = pmpro_getOption('nextpay_api_key');
 
+                $parameters = array
+                (
+                    "api_key"=>$api_key,
+                    "order_id"=> $order_id,
+                    "amount"=>$amount,
+                    "callback_uri"=>$redirect
+                );
+
+                $nextpay = new Nextpay_Payment($parameters);
                 $result = $nextpay->token();
 
-                if(intval($result->code) == -1) {
-                    $nextpay->send($result->trans_id);
+                if(intval($result->code) == -1){
+                    $go = 'http://api.nextpay.org/gateway/payment/'.$result->trans_id;
+                    header("Location: {$go}");
                     die();
                 } else {
-                    $Err = 'خطا در ارسال اطلاعات به نکست پی کد خطا :  '.$result->Status;
+                    $Err = 'خطا در ارسال اطلاعات به نکست پی کد خطا :  '.$result->code;
                     $morder->status = 'cancelled';
                     $morder->notes = $Err;
                     $morder->saveOrder();
@@ -232,15 +215,13 @@ function load_nextpay_pmpro_class()
 
             public static function pmpro_wp_ajax_nextpay_ins()
             {
+                include_once dirname(__FILE__).'/nextpay_payment.php';
                 global $gateway_environment;
                 if (!isset($_GET['oid']) || is_null($_GET['oid'])) {
-                    die('مقدار oid برای درگاه پرداخت نکست پی الزامیست.');
+                    die('order_id is not sent!');
                 }
 
                 $oid = $_GET['oid'];
-                global $pmpro_currency;
-                $trans_id	= (isset($_POST['trans_id'])) ? $_POST['trans_id'] : $_GET['trans_id'];
-                $order_id	= (isset($_POST['order_id'])) ? $_POST['order_id'] : $_GET['order_id'];
 
                 $morder = null;
                 try {
@@ -248,47 +229,42 @@ function load_nextpay_pmpro_class()
                     $morder->getMembershipLevel();
                     $morder->getUser();
                 } catch (Exception $exception) {
-                    die('مقدار oid معتبر نیست');
+                    die('order_id is not valid');
                 }
 
                 $current_user_id = get_current_user_id();
 
                 if ($current_user_id !== intval($morder->user_id)) {
-                    die('این خرید متعلق به شما نیست');
+                    die('this order is not belong to you!');
                 }
 
-                $gtw_env = pmpro_getOption('gateway_environment');
+                global $pmpro_currency;
 
-                include_once "nextpay_payment.php";
-
-                $nextpay = new Nextpay_Payment();
-
-                if ($gtw_env == '' || $gtw_env == 'sandbox') {
-                    $nextpay->setApiKey("1cf9d861-c817-468b-809b-2595625902ac");
-
-                } else {
-                    $api = pmpro_getOption('nextpay_api_key');
-                    $nextpay->setApiKey($api);
-                }
-
-
+                $Trans_Id = $_POST['trans_id'];
                 $Amount = intval($morder->subtotal);
                 if ($pmpro_currency == 'IRR') {
                     $Amount /= 10;
                 }
+                $Api_Key = pmpro_getOption('nextpay_api_key');
 
-                $nextpay->setAmount($Amount);
-                $nextpay->setTransId($trans_id);
-                $nextpay->setOrderId($order_id);
 
-                $result = intval($nextpay->verify_request());
+                $parameters = array
+                (
+                    'api_key'	=> $Api_Key,
+                    'order_id'	=> $oid,
+                    'trans_id' 	=> $Trans_Id,
+                    'amount'	=> $Amount,
+                );
 
-                if ($result == 0) {
-                    if (self::do_level_up($morder, $trans_id)) {
+                $nextpay = new Nextpay_Payment();
+                $result = $nextpay->verify_request($parameters);
+
+                if (intval($result) == 0) {
+                    if (self::do_level_up($morder, $Trans_Id)) {
                         header('Location:'.pmpro_url('confirmation', '?level='.$morder->membership_level->id));
                     }
                 } else {
-                    $Err = 'خطا در ارسال اطلاعات به نکست پی کد خطا :  '.$result;
+                    $Err = 'خطا در ارسال اطلاعات به زرین پال کد خطا :  '.$result;
                     $morder->status = 'cancelled';
                     $morder->notes = $Err;
                     $morder->saveOrder();
