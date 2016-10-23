@@ -1,5 +1,6 @@
 <?php
 /**
+ * Plugin Name: NextPay Gateway For Memberships Pro
  * Created by NextPay.ir
  * author: Nextpay Company
  * ID: @nextpay
@@ -10,6 +11,11 @@
  * @copyright 2016
  * @package NextPay_Gateway
  * @version 1.0
+ * Description: This plugin lets you use NextPay gateway in Memberships Pro wp plugin.
+ * Plugin URI: http://www.nextpay.ir
+ * Author URI: http://www.nextpay.ir
+ * License: GPL2
+ * License URI: http://www.gnu.org/licenses/gpl-2.0.html.
  */
 
 require_once("nextpay_payment.php");
